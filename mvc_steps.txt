@@ -1,0 +1,90 @@
+1.install packege sql server and tools
+2.create data folder and in that create appdbcontext class
+->create constructor 
+	 public AppDbContext(DbContextOptions<AppDbContext> options):base(options) 
+ 	{
+     
+ 	}
+3.create model class in model folder and add properties(table field name)
+	public Guid Id { get; set; }
+	public string Name { get; set; }
+4.add this model in appdbcontext
+	public DbSet<Students>student { get; set; }
+5.create connection string in appsettings.json
+	"ConnectionStrings": {
+  	"con": "Server=(localdb)\\MSSQLLocalDB;Database=stu_mvc1;Trusted_Connection=True;TrustServerCertification"
+	}
+6.inject appdbcontext class in program.cs file to create bridge between model and database
+	builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("con")));
+6.in nuget packege console run add-migration "Intitial Migration" and Update-Database
+7.create controller
+->create constructor and add appdbcontext dbcontext(object) and press ctrl and dot then select create and assign field
+	 private readonly AppDbContext dbContext;
+
+ 	public StudentsController(AppDbContext dbContext)
+ 	{
+    	 this.dbContext = dbContext;
+	 }
+8.create add view and write html code and add model to access field in controller
+->(model)@model stu_mvc1.Models.Students
+9.in controller create add data method
+	 [HttpPost]
+ public async Task<IActionResult> Add(Students model)
+ {
+     var stu = new Students
+     {
+         Name = model.Name,
+         Email = model.Email,
+         Phone = model.Phone
+     };
+     await dbContext.student.AddAsync(stu);
+     await dbContext.SaveChangesAsync();
+     return View();
+ }
+
+10.create showdata method
+	[HttpGet]
+public async Task<IActionResult> List()
+{
+    var stu = await dbContext.student.ToListAsync();
+    return View(stu);
+}
+
+->add model in list.cshtml file 
+	@model List<stu_mvc1.Models.Students>
+11.create method to find specific record
+	[HttpGet]
+public async Task<IActionResult> Edit(Guid id)
+{
+   var stu= await dbContext.students.FindAsync(id);
+    return View(stu);
+}
+
+12.create method to edit record
+	 [HttpPost]
+ public async Task<IActionResult>Edit(Students model)
+ {
+     var stu=await dbContext.student.FindAsync(model.Id);
+     if(stu!=null)
+     {
+         stu.Name = model.Name;
+         stu.Email = model.Email;
+         stu.Phone = model.Phone;
+         await dbContext.SaveChangesAsync();
+     }
+     return RedirectToAction("List","Students");
+ }
+13.create method to delete record 
+	[HttpPost]
+public async Task<IActionResult>Delete(Students model)
+{
+    var st=await dbContext.student
+        .AsNoTracking()
+        .FirstOrDefaultAsync(x=>x.Id==model.Id);
+    if(st!=null )
+    {
+        dbContext.student.Remove(model);
+        await dbContext.SaveChangesAsync();
+    }
+    return RedirectToAction("List", "Students");
+}
